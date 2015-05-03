@@ -6,10 +6,13 @@ from django.utils import six
 
 from cms.cache.permissions import get_permission_cache, set_permission_cache
 from cms.exceptions import NoPermissionsException
-from cms.models.query import PageQuerySet
 from cms.publisher import PublisherManager
 from cms.utils import get_cms_setting
 from cms.utils.i18n import get_fallback_languages
+
+# These are absolutely needed here - they are the method return types
+from . import Title, Page
+from cms.publisher.query import PublisherQuerySet
 
 
 class PageManager(PublisherManager):
@@ -19,10 +22,19 @@ class PageManager(PublisherManager):
 
     def get_queryset(self):
         """Change standard model queryset to our own.
+
+        Here I'd specify the return type like this PageQuerySet[Page],
+        but we already can't import PageQuerySet, because it must import
+        globally the Page model.
         """
+        from cms.models.query import PageQuerySet
         return PageQuerySet(self.model)
 
     def drafts(self):
+        """
+        Here I'd also like to specify the return type as PageQuerySet[Page]
+        Again, can't do it in this setup.
+        """
         return super(PageManager, self).drafts()
 
     def public(self):
@@ -39,18 +51,26 @@ class PageManager(PublisherManager):
     # manager, maybe some of them can be just accessible over queryset...?
 
     def on_site(self, site=None):
+        """Again - can't specify the PageQuerySet[Page] return type
+        """
         return self.get_queryset().on_site(site)
 
     def published(self, site=None):
+        """No luck, again
+        """
         return self.get_queryset().published(site=site)
 
     def get_home(self, site=None):
+        """No luck, again"""
         return self.get_queryset().get_home(site)
 
     def search(self, q, language=None, current_site_only=True):
         """Simple search function
 
         Plugins can define a 'search_fields' tuple similar to ModelAdmin classes
+
+        Again, can't specify PageQuerySet[Page] - Basically all the helper
+        methods in this manager are compromised
         """
         from cms.plugin_pool import plugin_pool
 
@@ -86,6 +106,9 @@ class TitleManager(PublisherManager):
         """
         Gets the latest content for a particular page and language. Falls back
         to another language if wanted.
+
+        :type page: Page
+        :rtype: Title
         """
         try:
             title = self.get(language=language, page=page)
@@ -108,6 +131,9 @@ class TitleManager(PublisherManager):
 
     # created new public method to meet test case requirement and to get a list of titles for published pages
     def public(self):
+        """
+        :rtype: PublisherQuerySet[Title]
+        """
         return self.get_queryset().filter(publisher_is_draft=False, published=True)
 
     def drafts(self):
@@ -116,6 +142,8 @@ class TitleManager(PublisherManager):
     def set_or_create(self, request, page, form, language):
         """
         set or create a title for a particular page and language
+
+        :rtype: Title
         """
         base_fields = [
             'slug',

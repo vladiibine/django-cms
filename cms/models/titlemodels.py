@@ -7,7 +7,6 @@ from django.utils.encoding import python_2_unicode_compatible
 from django.utils.translation import ugettext_lazy as _
 
 from cms.constants import PUBLISHER_STATE_DIRTY
-from cms.models.managers import TitleManager
 from cms.utils.helpers import reversion_register
 
 
@@ -35,6 +34,10 @@ class Title(models.Model):
     publisher_public = models.OneToOneField('self', related_name='publisher_draft', null=True, editable=False)
     publisher_state = models.SmallIntegerField(default=0, editable=False, db_index=True)
 
+    # This import can't help. Class level blocks are executed at module loading
+    # This must however either be added here, or some hack must be applied on
+    # this class
+    from cms.models.managers import TitleManager
     objects = TitleManager()
 
     class Meta:

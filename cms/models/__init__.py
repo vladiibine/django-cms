@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from .settingmodels import *  # nopyflakes
+# This starts the cyclic dependencies problem, because the model must be loaded
 from .pagemodel import *  # nopyflakes
 from .permissionmodels import *  # nopyflakes
 from .placeholdermodel import *  # nopyflakes

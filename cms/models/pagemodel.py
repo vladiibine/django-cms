@@ -18,20 +18,18 @@ from django.utils.translation import get_language, ugettext_lazy as _
 from cms import constants
 from cms.constants import PUBLISHER_STATE_DEFAULT, PUBLISHER_STATE_PENDING, PUBLISHER_STATE_DIRTY, TEMPLATE_INHERITANCE_MAGIC
 from cms.exceptions import PublicIsUnmodifiable, LanguageError, PublicVersionNeeded
-from cms.models.managers import PageManager, PagePermissionsPermissionManager
 from cms.models.metaclasses import PageMetaClass
-from cms.models.placeholdermodel import Placeholder
 from cms.models.pluginmodel import CMSPlugin
 from cms.publisher.errors import PublisherCantPublish
 from cms.utils import i18n, page as page_utils
 from cms.utils.conf import get_cms_setting
-from cms.utils.copy_plugins import copy_plugins_to
 from cms.utils.helpers import reversion_register
 from menus.menu_pool import menu_pool
 from treebeard.mp_tree import MP_Node
 
-from cms.models.titlemodels import Title
-from cms.models.titlemodels import EmptyTitle
+# This would absolutely be needed here, because these classes must be in the
+# return types of Page.get_title_obj
+from cms.models.titlemodels import Title, EmptyTitle
 
 
 logger = getLogger(__name__)
@@ -101,7 +99,7 @@ class Page(six.with_metaclass(PageMetaClass, MP_Node)):
     application_namespace = models.CharField(_('application instance name'), max_length=200, blank=True, null=True)
 
     # Placeholders (plugins)
-    placeholders = models.ManyToManyField(Placeholder, editable=False)
+    placeholders = models.ManyToManyField('Placeholder', editable=False)
 
     # Publisher fields
     publisher_is_draft = models.BooleanField(default=True, editable=False, db_index=True)
@@ -119,6 +117,7 @@ class Page(six.with_metaclass(PageMetaClass, MP_Node)):
     )
 
     # Managers
+    from cms.models.managers import PageManager, PagePermissionsPermissionManager
     objects = PageManager()
     permissions = PagePermissionsPermissionManager()
 
@@ -244,8 +243,6 @@ class Page(six.with_metaclass(PageMetaClass, MP_Node)):
         Copy all the titles to a new page (which must have a pk).
         :param target: The page where the new titles should be stored
         """
-        from .titlemodels import Title
-
         old_titles = dict(target.title_set.filter(language=language).values_list('language', 'pk'))
         for title in self.title_set.filter(language=language):
             old_pk = title.pk
@@ -308,6 +305,7 @@ class Page(six.with_metaclass(PageMetaClass, MP_Node)):
                 new_phs.append(ph)
                 # update the page copy
             if plugins:
+                from cms.utils.copy_plugins import copy_plugins_to
                 copy_plugins_to(plugins, ph, no_signals=True)
         target.placeholders.add(*new_phs)
 
@@ -432,6 +430,7 @@ class Page(six.with_metaclass(PageMetaClass, MP_Node)):
                 title.slug = page_utils.get_available_slug(title)
                 title.save()
             # copy the placeholders (and plugins on those placeholders!)
+            from . import Placeholder
             for ph in placeholders:
                 plugins = ph.get_plugins_list()
                 try:
@@ -441,6 +440,7 @@ class Page(six.with_metaclass(PageMetaClass, MP_Node)):
                     ph.save()
                     page.placeholders.add(ph)
                 if plugins:
+                    from cms.utils.copy_plugins import copy_plugins_to
                     copy_plugins_to(plugins, ph)
             extension_pool.copy_extensions(Page.objects.get(pk=origin_id), page)
         # invalidate the menu for this site
@@ -635,7 +635,6 @@ class Page(six.with_metaclass(PageMetaClass, MP_Node)):
 
         # Check if there are some children which are waiting for parents to
         # become published.
-        from cms.models import Title
         publish_set = list(self.get_descendants().filter(title_set__published=True,
                                                     title_set__language=language).select_related('publisher_public', 'publisher_public__parent').order_by('depth', 'path'))
         #prefetch the titles
@@ -729,7 +728,6 @@ class Page(six.with_metaclass(PageMetaClass, MP_Node)):
         assert self.publisher_is_draft
         # Go through all children of our public instance
         public_page = self.publisher_public
-        from cms.models import Title
         if public_page:
             descendants = public_page.get_descendants().filter(title_set__language=language)
             for child in descendants:
@@ -801,6 +799,7 @@ class Page(six.with_metaclass(PageMetaClass, MP_Node)):
         """Helper function for accessing wanted / current title.
         If wanted title doesn't exists, EmptyTitle instance will be returned.
 
+        # This return type corresponds to a Union[Title, EmptyTitle]
         :rtype: Title | EmptyTitle
         """
         language = self._get_title_cache(language, fallback, version_id, force_reload)
@@ -1237,6 +1236,7 @@ class Page(six.with_metaclass(PageMetaClass, MP_Node)):
         for placeholder in self.placeholders.all():
             if placeholder.slot in placeholders:
                 found[placeholder.slot] = placeholder
+        from . import Placeholder
         for placeholder_name in placeholders:
             if placeholder_name not in found:
                 placeholder = Placeholder.objects.create(slot=placeholder_name)
