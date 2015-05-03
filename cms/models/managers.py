@@ -9,9 +9,7 @@ from cms.exceptions import NoPermissionsException
 from cms.models.query import PageQuerySet
 from cms.publisher import PublisherManager
 from cms.utils import get_cms_setting
-from cms.utils.i18n import get_fallback_languages
 
-from . import Page, Title
 
 class PageManager(PublisherManager):
     """Use draft() and public() methods for accessing the corresponding
@@ -81,92 +79,6 @@ class PageManager(PublisherManager):
 
         return qs.distinct()
 
-
-class TitleManager(PublisherManager):
-    def get_title(self, page, language, language_fallback=False):
-        """
-        Gets the latest content for a particular page and language. Falls back
-        to another language if wanted.
-
-        :type page: Page
-        :rtype: Title
-        """
-        try:
-            title = self.get(language=language, page=page)
-            return title
-        except self.model.DoesNotExist:
-            if language_fallback:
-                try:
-                    titles = self.filter(page=page)
-                    fallbacks = get_fallback_languages(language)
-                    for lang in fallbacks:
-                        for title in titles:
-                            if lang == title.language:
-                                return title
-                    return None
-                except self.model.DoesNotExist:
-                    pass
-            else:
-                raise
-        return None
-
-    # created new public method to meet test case requirement and to get a list of titles for published pages
-    def public(self):
-        return self.get_queryset().filter(publisher_is_draft=False, published=True)
-
-    def drafts(self):
-        return self.get_queryset().filter(publisher_is_draft=True)
-
-    def set_or_create(self, request, page, form, language):
-        """
-        set or create a title for a particular page and language
-        """
-        base_fields = [
-            'slug',
-            'title',
-            'meta_description',
-            'page_title',
-            'menu_title'
-        ]
-        advanced_fields = [
-            'redirect',
-        ]
-        cleaned_data = form.cleaned_data
-        try:
-            obj = self.get(page=page, language=language)
-        except self.model.DoesNotExist:
-            data = {}
-            for name in base_fields:
-                if name in cleaned_data:
-                    data[name] = cleaned_data[name]
-            data['page'] = page
-            data['language'] = language
-            if page.has_advanced_settings_permission(request):
-                overwrite_url = cleaned_data.get('overwrite_url', None)
-                if overwrite_url:
-                    data['has_url_overwrite'] = True
-                    data['path'] = overwrite_url
-                else:
-                    data['has_url_overwrite'] = False
-                for field in advanced_fields:
-                    value = cleaned_data.get(field, None)
-                    data[field] = value
-            return self.create(**data)
-        for name in base_fields:
-            if name in form.base_fields:
-                value = cleaned_data.get(name, None)
-                setattr(obj, name, value)
-        if page.has_advanced_settings_permission(request):
-            if 'overwrite_url' in cleaned_data:
-                overwrite_url = cleaned_data.get('overwrite_url', None)
-                obj.has_url_overwrite = bool(overwrite_url)
-                obj.path = overwrite_url
-            for field in advanced_fields:
-                if field in form.base_fields:
-                    value = cleaned_data.get(field, None)
-                    setattr(obj, field, value)
-        obj.save()
-        return obj
 
 ################################################################################
 # Permissions
