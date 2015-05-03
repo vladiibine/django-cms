@@ -455,6 +455,8 @@ def publish_page(page, user, language):
 def publish_pages(include_unpublished=False, language=None, site=None):
     """
     Create published public version of selected drafts.
+
+    :rtype: tuple[Page]
     """
     qs = Page.objects.drafts()
     if not include_unpublished:

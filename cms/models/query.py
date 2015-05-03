@@ -5,9 +5,17 @@ from cms.publisher.query import PublisherQuerySet
 from cms.exceptions import NoHomeFound
 from django.utils import timezone
 
+from . import Page
 
 class PageQuerySet(PublisherQuerySet):
     def on_site(self, site=None):
+        """
+
+        Here I'd specify the return type as PageQuerySet[Page], but that
+        doesn't add anything to this POC, so list[] is sufficient
+
+        :rtype: list[Page]
+        """
         if not site:
             try:
                 site = Site.objects.get_current()

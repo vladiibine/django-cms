@@ -6,6 +6,7 @@ from cms.utils import get_cms_setting
 from cms.utils.permissions import has_page_change_permission
 from django.core.urlresolvers import NoReverseMatch
 
+from cms.models import Page
 
 class ExtensionToolbar(CMSToolbar):
     """
@@ -78,6 +79,8 @@ class ExtensionToolbar(CMSToolbar):
     def _get_page(self):
         """
         A utility method that caches the current page and make sure to use the draft version of the page.
+
+        :rtype: Page
         """
         # always use draft if we have a page
         if not self.page:

@@ -14,6 +14,8 @@ from cms.utils.i18n import get_language_object
 from cms.utils.placeholder import PlaceholderNoAction, get_placeholder_conf
 from cms.utils.urlutils import admin_reverse
 
+from cms.models.pagemodel import Page
+
 
 @python_2_unicode_compatible
 class Placeholder(models.Model):
@@ -166,7 +168,7 @@ class Placeholder(models.Model):
         return self._attached_fields_cache
 
     def _get_attached_field(self):
-        from cms.models import CMSPlugin, StaticPlaceholder, Page
+        from cms.models import CMSPlugin, StaticPlaceholder
         if not hasattr(self, '_attached_field_cache'):
             self._attached_field_cache = None
             relations = self._meta.get_all_related_objects()
@@ -198,7 +200,6 @@ class Placeholder(models.Model):
         if hasattr(self, '_attached_model_cache'):
             return self._attached_model_cache
         if self.page or self.page_set.all().count():
-            from cms.models import Page
             self._attached_model_cache = Page
             return Page
         field = self._get_attached_field()
@@ -225,8 +226,10 @@ class Placeholder(models.Model):
                 for obj in getattr(self, field.related.get_accessor_name()).all()]
 
     def page_getter(self):
+        """
+        :rtype: Page
+        """
         if not hasattr(self, '_page'):
-            from cms.models.pagemodel import Page
             try:
                 self._page = Page.objects.get(placeholders=self)
             except (Page.DoesNotExist, Page.MultipleObjectsReturned,):

@@ -1,11 +1,16 @@
 # -*- coding: utf-8 -*-
 from django.utils.six.moves import zip
+from ..models import Placeholder
+from ..models import CMSPlugin
 
 
 def copy_plugins_to(old_plugins, to_placeholder,
                     to_language=None, parent_plugin_id=None, no_signals=False):
     """
     Copies a list of plugins to a placeholder to a language.
+
+    :type to_plugins: list[CMSPlugin]
+    :type to_placeholder: Placeholder
     """
     # TODO: Refactor this and copy_plugins to cleanly separate plugin tree/node
     # copying and remove the need for the mutating parameter old_parent_cache.

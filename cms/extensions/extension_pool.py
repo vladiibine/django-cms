@@ -1,7 +1,7 @@
 from cms.exceptions import SubClassNeededError
 
 from .models import PageExtension, TitleExtension
-
+from ..models import Page, Title
 
 class ExtensionPool(object):
     def __init__(self):
@@ -67,6 +67,9 @@ class ExtensionPool(object):
             self._remove_orphaned_title_extensions()
 
     def _copy_page_extensions(self, source_page, target_page, language, clone=False):
+        """
+        :type source_page: Page
+        """
         for extension in self.page_extensions:
             for instance in extension.objects.filter(extended_object=source_page):
                 if clone:
@@ -122,6 +125,9 @@ class ExtensionPool(object):
         return extensions
 
     def get_title_extensions(self, title=None):
+        """
+        :type title: Title
+        """
         extensions = []
         for extension in self.title_extensions:
             if title:

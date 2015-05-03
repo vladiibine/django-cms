@@ -4,7 +4,6 @@ from django.template.loader import render_to_string
 from django.utils import six
 from django.utils.safestring import mark_safe
 
-from cms.models.placeholdermodel import Placeholder
 from cms.plugin_processors import (plugin_meta_context_processor, mark_safe_plugin_processor)
 from cms.utils import get_language_from_request
 from cms.utils.conf import get_cms_setting
@@ -192,6 +191,7 @@ def render_placeholder_toolbar(placeholder, context, name_fallback, save_languag
         page = getattr(request, 'current_page', None)
     if page:
         if name_fallback and not placeholder:
+            from .models import Placeholder
             placeholder = Placeholder.objects.create(slot=name_fallback)
             page.placeholders.add(placeholder)
             placeholder.page = page

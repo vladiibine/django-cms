@@ -19,7 +19,6 @@ from django.utils.six.moves import filter
 from django.utils.translation import ugettext_lazy as _
 
 from cms.exceptions import DontUsePageAttributeWarning
-from cms.models.placeholdermodel import Placeholder
 from cms.plugin_rendering import PluginContext, render_plugin
 from cms.utils import get_cms_setting
 from cms.utils.helpers import reversion_register
@@ -73,7 +72,7 @@ class CMSPlugin(six.with_metaclass(PluginModelBase, MP_Node)):
     2. Subclasses of CMSPlugin cannot define a "text" field.
 
     '''
-    placeholder = models.ForeignKey(Placeholder, editable=False, null=True)
+    placeholder = models.ForeignKey('Placeholder', editable=False, null=True)
     parent = models.ForeignKey('self', blank=True, null=True, editable=False)
     position = models.PositiveSmallIntegerField(_("position"), blank=True, null=True, editable=False)
     language = models.CharField(_("language"), max_length=15, blank=False, db_index=True, editable=False)
@@ -164,6 +163,7 @@ class CMSPlugin(six.with_metaclass(PluginModelBase, MP_Node)):
     def render_plugin(self, context=None, placeholder=None, admin=False, processors=None):
         instance, plugin = self.get_plugin_instance()
         if instance and not (admin and not plugin.admin_preview):
+            from . import Placeholder
             if not placeholder or not isinstance(placeholder, Placeholder):
                 placeholder = instance.placeholder
             placeholder_slot = placeholder.slot
@@ -328,6 +328,7 @@ class CMSPlugin(six.with_metaclass(PluginModelBase, MP_Node)):
         from cms.utils.plugins import reorder_plugins
 
         super(CMSPlugin, cls).fix_tree(destructive)
+        from . import Placeholder
         for placeholder in Placeholder.objects.all():
             for language, __ in settings.LANGUAGES:
                 order = CMSPlugin.objects.filter(placeholder_id=placeholder.pk, language=language,
