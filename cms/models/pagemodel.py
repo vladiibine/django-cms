@@ -30,6 +30,9 @@ from cms.utils.helpers import reversion_register
 from menus.menu_pool import menu_pool
 from treebeard.mp_tree import MP_Node
 
+from cms.models.titlemodels import Title
+from cms.models.titlemodels import EmptyTitle
+
 
 logger = getLogger(__name__)
 
@@ -797,11 +800,12 @@ class Page(six.with_metaclass(PageMetaClass, MP_Node)):
     def get_title_obj(self, language=None, fallback=True, version_id=None, force_reload=False):
         """Helper function for accessing wanted / current title.
         If wanted title doesn't exists, EmptyTitle instance will be returned.
+
+        :rtype: Title | EmptyTitle
         """
         language = self._get_title_cache(language, fallback, version_id, force_reload)
         if language in self.title_cache:
             return self.title_cache[language]
-        from cms.models.titlemodels import EmptyTitle
 
         return EmptyTitle(language)
 
@@ -939,8 +943,6 @@ class Page(six.with_metaclass(PageMetaClass, MP_Node)):
                         return lang
             load = True
         if load:
-            from cms.models.titlemodels import Title
-
             if version_id:
                 from reversion.models import Version
 
