@@ -11,6 +11,7 @@ from cms.publisher import PublisherManager
 from cms.utils import get_cms_setting
 from cms.utils.i18n import get_fallback_languages
 
+from . import Page, Title
 
 class PageManager(PublisherManager):
     """Use draft() and public() methods for accessing the corresponding
@@ -86,6 +87,9 @@ class TitleManager(PublisherManager):
         """
         Gets the latest content for a particular page and language. Falls back
         to another language if wanted.
+
+        :type page: Page
+        :rtype: Title
         """
         try:
             title = self.get(language=language, page=page)
