@@ -4,7 +4,6 @@ from os.path import join
 
 from django.conf import settings
 from django.contrib.auth import get_permission_codename
-from django.contrib.sites.models import Site
 from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.core.urlresolvers import reverse
@@ -18,8 +17,9 @@ from django.utils.translation import get_language, ugettext_lazy as _
 from cms import constants
 from cms.constants import PUBLISHER_STATE_DEFAULT, PUBLISHER_STATE_PENDING, PUBLISHER_STATE_DIRTY, TEMPLATE_INHERITANCE_MAGIC
 from cms.exceptions import PublicIsUnmodifiable, LanguageError, PublicVersionNeeded
-from cms.models.managers import PageManager, PagePermissionsPermissionManager
+from cms.models.managers import PagePermissionsPermissionManager
 from cms.models.metaclasses import PageMetaClass
+from cms.models.managers import PageManager
 from cms.models.placeholdermodel import Placeholder
 from cms.models.pluginmodel import CMSPlugin
 from cms.publisher.errors import PublisherCantPublish
@@ -33,8 +33,59 @@ from treebeard.mp_tree import MP_Node
 from cms.models.titlemodels import Title
 from cms.models.titlemodels import EmptyTitle
 
+from django.db.models import Q
+from django.contrib.sites.models import Site
+from cms.publisher.query import PublisherQuerySet
+from cms.exceptions import NoHomeFound
+from django.utils import timezone
+
 
 logger = getLogger(__name__)
+
+
+class PageQuerySet(PublisherQuerySet):
+    def on_site(self, site=None):
+        if not site:
+            try:
+                site = Site.objects.get_current()
+            except Site.DoesNotExist:
+                site = None
+        return self.filter(site=site)
+
+    def all_root(self):
+        """
+        Return a queryset with pages that don't have parents, a.k.a. root. For
+        all sites - used in frontend
+        """
+        return self.filter(parent__isnull=True)
+
+    def published(self, language=None, site=None):
+
+        if language:
+            pub = self.on_site(site).filter(
+                Q(publication_date__lte=timezone.now()) | Q(publication_date__isnull=True),
+                Q(publication_end_date__gt=timezone.now()) | Q(publication_end_date__isnull=True),
+                title_set__published=True, title_set__language=language
+            )
+        else:
+            pub = self.on_site(site).filter(
+                Q(publication_date__lte=timezone.now()) | Q(publication_date__isnull=True),
+                Q(publication_end_date__gt=timezone.now()) | Q(publication_end_date__isnull=True),
+                title_set__published=True
+            )
+        return pub
+
+    def get_home(self, site=None):
+        """
+        :rtype: Page
+        """
+        try:
+            home = self.published(site=site).all_root().order_by("path")[0]
+        except IndexError:
+            raise NoHomeFound('No Root page found. Publish at least one page!')
+        return home
+
+
 
 
 @python_2_unicode_compatible

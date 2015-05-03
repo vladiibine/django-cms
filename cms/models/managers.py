@@ -6,11 +6,14 @@ from django.utils import six
 
 from cms.cache.permissions import get_permission_cache, set_permission_cache
 from cms.exceptions import NoPermissionsException
-from cms.models.query import PageQuerySet
-from cms.publisher import PublisherManager
 from cms.utils import get_cms_setting
+from cms.publisher import PublisherManager
 
-
+# Of course, for this class to live here, it must not be able to reference
+# the PageQuerySet. Either that, or be moved in the same .pagemodel module
+# as all the other classes. One would however expect this class to be able
+# to reference the PageQuerySet in its documentation.
+# Either way, it's either type hinting, or a more flexible project structure
 class PageManager(PublisherManager):
     """Use draft() and public() methods for accessing the corresponding
     instances.
@@ -19,6 +22,7 @@ class PageManager(PublisherManager):
     def get_queryset(self):
         """Change standard model queryset to our own.
         """
+        from .pagemodel import PageQuerySet
         return PageQuerySet(self.model)
 
     def drafts(self):
