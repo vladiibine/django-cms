@@ -8,7 +8,6 @@ from django.utils.translation import ugettext_lazy as _
 
 from cms.constants import PUBLISHER_STATE_DIRTY
 from cms.models.managers import TitleManager
-from cms.models.pagemodel import Page
 from cms.utils.helpers import reversion_register
 
 
@@ -26,7 +25,7 @@ class Title(models.Model):
     path = models.CharField(_("Path"), max_length=255, db_index=True)
     has_url_overwrite = models.BooleanField(_("has url overwrite"), default=False, db_index=True, editable=False)
     redirect = models.CharField(_("redirect"), max_length=2048, blank=True, null=True)
-    page = models.ForeignKey(Page, verbose_name=_("page"), related_name="title_set")
+    page = models.ForeignKey('Page', verbose_name=_("page"), related_name="title_set")
     creation_date = models.DateTimeField(_("creation date"), editable=False, default=timezone.now)
 
     # Publisher fields
